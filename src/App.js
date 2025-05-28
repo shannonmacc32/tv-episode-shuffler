@@ -1,115 +1,126 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import "./App.css";
 
 function App() {
-  const [episodes, setEpisodes] = useState([]);
-  const [shuffled, setShuffled] = useState([]);
-  const [categoryToShuffle, setCategoryToShuffle] = useState('all');
-  const [newEpisode, setNewEpisode] = useState({
-    title: '',
-    show: '',
-    platform: '',
-    link: '',
-    category: 'funny'
-  });
+  const [playlists, setPlaylists] = useState({});
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [selectedPlaylist, setSelectedPlaylist] = useState("");
+  const [newEpisode, setNewEpisode] = useState("");
+  const [shuffledEpisode, setShuffledEpisode] = useState(null);
+  const [renameMap, setRenameMap] = useState({});
 
-  // Load episodes from localStorage
   useEffect(() => {
-    const storedEpisodes = JSON.parse(localStorage.getItem('episodes'));
-    if (storedEpisodes) setEpisodes(storedEpisodes);
+    const saved = JSON.parse(localStorage.getItem("playlists"));
+    if (saved) setPlaylists(saved);
   }, []);
 
-  // Save episodes to localStorage
   useEffect(() => {
-    localStorage.setItem('episodes', JSON.stringify(episodes));
-  }, [episodes]);
+    localStorage.setItem("playlists", JSON.stringify(playlists));
+  }, [playlists]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setNewEpisode((prev) => ({ ...prev, [name]: value }));
+  const addPlaylist = () => {
+    if (!newPlaylistName || playlists[newPlaylistName]) return;
+    setPlaylists({ ...playlists, [newPlaylistName]: [] });
+    setNewPlaylistName("");
   };
 
   const addEpisode = () => {
-    const { title, show, platform, link, category } = newEpisode;
-    if (title && show && platform && link && category) {
-      setEpisodes([...episodes, newEpisode]);
-      setNewEpisode({ title: '', show: '', platform: '', link: '', category: 'funny' });
-    } else {
-      alert("Please fill out all fields");
-    }
+    if (!selectedPlaylist || !newEpisode) return;
+    const updated = {
+      ...playlists,
+      [selectedPlaylist]: [...playlists[selectedPlaylist], newEpisode],
+    };
+    setPlaylists(updated);
+    setNewEpisode("");
   };
 
-  const deleteEpisode = (indexToDelete) => {
-    const updated = episodes.filter((_, index) => index !== indexToDelete);
-    setEpisodes(updated);
-    setShuffled([]);
+  const shuffleEpisode = () => {
+    if (!selectedPlaylist || playlists[selectedPlaylist].length === 0) return;
+    const eps = playlists[selectedPlaylist];
+    const random = eps[Math.floor(Math.random() * eps.length)];
+    setShuffledEpisode(random);
   };
 
-  const shuffleEpisodes = () => {
-    const filtered =
-      categoryToShuffle === 'all'
-        ? episodes
-        : episodes.filter((ep) => ep.category === categoryToShuffle);
-    const shuffledList = [...filtered].sort(() => Math.random() - 0.5);
-    setShuffled(shuffledList);
+  const handleDelete = (playlistName) => {
+    const updated = { ...playlists };
+    delete updated[playlistName];
+    setPlaylists(updated);
+    if (selectedPlaylist === playlistName) setSelectedPlaylist("");
+  };
+
+  const handleRename = (oldName) => {
+    const newName = renameMap[oldName];
+    if (!newName || playlists[newName]) return;
+    const updated = { ...playlists };
+    updated[newName] = updated[oldName];
+    delete updated[oldName];
+    setPlaylists(updated);
+    if (selectedPlaylist === oldName) setSelectedPlaylist(newName);
   };
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: '600px', margin: 'auto' }}>
-      <h1>🎲 Shuffle My Episodes</h1>
+    <div className="App">
+      <h1>TV Episode Shuffler</h1>
 
-      <div style={{ marginBottom: '2rem' }}>
-        <h2>Add a Favorite Episode</h2>
-        <input name="title" placeholder="Episode Title" value={newEpisode.title} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem' }} />
-        <input name="show" placeholder="TV Show" value={newEpisode.show} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem' }} />
-        <input name="platform" placeholder="Streaming Platform" value={newEpisode.platform} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem' }} />
-        <input name="link" placeholder="Watch Link" value={newEpisode.link} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem' }} />
-        <select name="category" value={newEpisode.category} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginBottom: '0.5rem' }}>
-          <option value="funny">🎭 Funny</option>
-          <option value="sad">😢 Sad</option>
-          <option value="comfort">💆‍♀️ Comfort</option>
-          <option value="random">🎲 Random</option>
-        </select>
-        <button onClick={addEpisode} style={{ padding: '0.5rem 1rem' }}>➕ Add Episode</button>
+      <div>
+        <input
+          type="text"
+          placeholder="New playlist name"
+          value={newPlaylistName}
+          onChange={(e) => setNewPlaylistName(e.target.value)}
+        />
+        <button onClick={addPlaylist}>Add Playlist</button>
       </div>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <label><strong>Choose category to shuffle:</strong></label>
-        <select value={categoryToShuffle} onChange={(e) => setCategoryToShuffle(e.target.value)} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
-          <option value="all">🌐 All Categories</option>
-          <option value="funny">🎭 Funny</option>
-          <option value="sad">😢 Sad</option>
-          <option value="comfort">💆‍♀️ Comfort</option>
-          <option value="random">🎲 Random</option>
+      <div>
+        <select
+          value={selectedPlaylist}
+          onChange={(e) => setSelectedPlaylist(e.target.value)}
+        >
+          <option value="">Select a playlist</option>
+          {Object.keys(playlists).map((pl) => (
+            <option key={pl} value={pl}>{pl}</option>
+          ))}
         </select>
       </div>
 
-      <button onClick={shuffleEpisodes} style={{ padding: '0.5rem 1rem', marginBottom: '1.5rem' }}>
-        🔀 Shuffle Episodes
-      </button>
+      {selectedPlaylist && (
+        <>
+          <input
+            type="text"
+            placeholder="Episode name (e.g., Friends S1E1)"
+            value={newEpisode}
+            onChange={(e) => setNewEpisode(e.target.value)}
+          />
+          <button onClick={addEpisode}>Add Episode</button>
+        </>
+      )}
 
-      {shuffled.length > 0 && <h3>🎬 Your Shuffled Lineup</h3>}
-      {shuffled.map((ep, idx) => (
-        <div key={idx} style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-          <h2>{ep.title}</h2>
-          <p><strong>Show:</strong> {ep.show}</p>
-          <p><strong>Platform:</strong> {ep.platform}</p>
-          <p><strong>Category:</strong> {ep.category}</p>
-          <a href={ep.link} target="_blank" rel="noopener noreferrer">▶️ Watch Now</a>
-        </div>
-      ))}
+      <div>
+        <button onClick={shuffleEpisode} disabled={!selectedPlaylist}>
+          Shuffle from {selectedPlaylist || "..."}
+        </button>
+        {shuffledEpisode && <p>🎲 {shuffledEpisode}</p>}
+      </div>
 
-      <hr style={{ margin: '2rem 0' }} />
-      <h2>Your Episode List</h2>
-      {episodes.length === 0 && <p>No episodes added yet.</p>}
-      {episodes.map((ep, idx) => (
-        <div key={idx} style={{ marginBottom: '1rem', padding: '1rem', border: '1px dashed #888', borderRadius: '8px' }}>
-          <h3>{ep.title}</h3>
-          <p><strong>Show:</strong> {ep.show}</p>
-          <p><strong>Platform:</strong> {ep.platform}</p>
-          <p><strong>Category:</strong> {ep.category}</p>
-          <button onClick={() => deleteEpisode(idx)} style={{ marginTop: '0.5rem', color: 'red' }}>🗑️ Delete</button>
-        </div>
-      ))}
+      <div>
+        <h3>Your Playlists</h3>
+        {Object.entries(playlists).map(([name, eps]) => (
+          <div key={name} style={{ marginBottom: "10px" }}>
+            <strong>{name}</strong>: {eps.join(", ") || "(No episodes yet)"}
+            <br />
+            <input
+              type="text"
+              placeholder="New name"
+              onChange={(e) => setRenameMap({ ...renameMap, [name]: e.target.value })}
+            />
+            <button onClick={() => handleRename(name)}>Rename</button>
+            <button onClick={() => handleDelete(name)} style={{ color: "red", marginLeft: "8px" }}>
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
