@@ -9,11 +9,13 @@ function App() {
   const [shuffledEpisode, setShuffledEpisode] = useState(null);
   const [renameMap, setRenameMap] = useState({});
 
+  // Load from localStorage
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("playlists"));
     if (saved) setPlaylists(saved);
   }, []);
 
+  // Save to localStorage
   useEffect(() => {
     localStorage.setItem("playlists", JSON.stringify(playlists));
   }, [playlists]);
@@ -51,76 +53,81 @@ function App() {
   const handleRename = (oldName) => {
     const newName = renameMap[oldName];
     if (!newName || playlists[newName]) return;
+
     const updated = { ...playlists };
     updated[newName] = updated[oldName];
     delete updated[oldName];
     setPlaylists(updated);
+
     if (selectedPlaylist === oldName) setSelectedPlaylist(newName);
   };
 
   return (
-    <div className="App">
+    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
       <h1>TV Episode Shuffler</h1>
 
-      <div>
-        <input
-          type="text"
-          placeholder="New playlist name"
-          value={newPlaylistName}
-          onChange={(e) => setNewPlaylistName(e.target.value)}
-        />
-        <button onClick={addPlaylist}>Add Playlist</button>
-      </div>
+      <input
+        value={newPlaylistName}
+        onChange={(e) => setNewPlaylistName(e.target.value)}
+        placeholder="New playlist name"
+      />
+      <button onClick={addPlaylist}>Add Playlist</button>
 
-      <div>
-        <select
-          value={selectedPlaylist}
-          onChange={(e) => setSelectedPlaylist(e.target.value)}
-        >
-          <option value="">Select a playlist</option>
-          {Object.keys(playlists).map((pl) => (
-            <option key={pl} value={pl}>{pl}</option>
-          ))}
-        </select>
-      </div>
+      <br /><br />
+
+      <select
+        value={selectedPlaylist}
+        onChange={(e) => setSelectedPlaylist(e.target.value)}
+      >
+        <option value="">Select a playlist</option>
+        {Object.keys(playlists).map((name) => (
+          <option key={name} value={name}>{name}</option>
+        ))}
+      </select>
+
+      <br /><br />
 
       {selectedPlaylist && (
         <>
           <input
-            type="text"
-            placeholder="Episode name (e.g., Friends S1E1)"
             value={newEpisode}
             onChange={(e) => setNewEpisode(e.target.value)}
+            placeholder="Add episode (e.g., Friends S1E1)"
           />
           <button onClick={addEpisode}>Add Episode</button>
         </>
       )}
 
-      <div>
-        <button onClick={shuffleEpisode} disabled={!selectedPlaylist}>
-          Shuffle from {selectedPlaylist || "..."}
-        </button>
-        {shuffledEpisode && <p>🎲 {shuffledEpisode}</p>}
-      </div>
+      <br /><br />
 
-      <div>
-        <h3>Your Playlists</h3>
-        {Object.entries(playlists).map(([name, eps]) => (
-          <div key={name} style={{ marginBottom: "10px" }}>
-            <strong>{name}</strong>: {eps.join(", ") || "(No episodes yet)"}
-            <br />
-            <input
-              type="text"
-              placeholder="New name"
-              onChange={(e) => setRenameMap({ ...renameMap, [name]: e.target.value })}
-            />
-            <button onClick={() => handleRename(name)}>Rename</button>
-            <button onClick={() => handleDelete(name)} style={{ color: "red", marginLeft: "8px" }}>
-              Delete
-            </button>
+      <button onClick={shuffleEpisode} disabled={!selectedPlaylist}>
+        Shuffle from {selectedPlaylist || "..."}
+      </button>
+
+      {shuffledEpisode && (
+        <p><strong>Watch:</strong> {shuffledEpisode}</p>
+      )}
+
+      <h2>Your Playlists</h2>
+      {Object.entries(playlists).map(([name, eps]) => (
+        <div key={name} style={{ marginBottom: "12px" }}>
+          <strong>{name}</strong> ({eps.length} episodes)
+          <br />
+          <input
+            placeholder="Rename to..."
+            onChange={(e) =>
+              setRenameMap({ ...renameMap, [name]: e.target.value })
+            }
+          />
+          <button onClick={() => handleRename(name)}>Rename</button>
+          <button onClick={() => handleDelete(name)} style={{ color: "red", marginLeft: "8px" }}>
+            Delete
+          </button>
+          <div style={{ fontSize: "0.9em", marginTop: "4px" }}>
+            {eps.join(", ") || "(No episodes yet)"}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
